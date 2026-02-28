@@ -87,14 +87,7 @@ export default function App() {
 
   if (!fontsLoaded || isLoadingSession) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: COLORS.bg,
-        }}
-      >
+      <View className="flex-1 items-center justify-center bg-gentil-bg">
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );

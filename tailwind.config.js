@@ -5,8 +5,9 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        accent: '#D4AF37', // Adiciona a cor accent diretamente
         gentil: {
-          bg: '#204F4C',
+          bg: '#0A1A19',
           card: '#2A6360',
           chip: '#275C59',
           accent: '#D4AF37',

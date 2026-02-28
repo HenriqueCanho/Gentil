@@ -1,5 +1,4 @@
 import { Pressable, Text } from 'react-native';
-import { COLORS } from '../theme/colors';
 
 type Props = {
   label: string;
@@ -10,26 +9,10 @@ export default function SecondaryButton({ label, onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
-        borderWidth: 1.5,
-        borderColor: COLORS.accent,
-        borderRadius: 14,
-        paddingVertical: 16,
-        alignItems: 'center',
-        opacity: pressed ? 0.7 : 1,
-        width: '100%',
-        backgroundColor: 'transparent',
-      })}
+      className="w-full items-center rounded-[14px] border-[1.5px] border-gentil-accent bg-transparent py-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
-      <Text
-        style={{
-          fontFamily: 'Fraunces_600SemiBold',
-          fontSize: 16,
-          color: COLORS.accent,
-        }}
-      >
-        {label}
-      </Text>
+      <Text className="font-fraunces-semi text-base text-gentil-accent">{label}</Text>
     </Pressable>
   );
 }

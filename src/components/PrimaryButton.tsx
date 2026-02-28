@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { COLORS } from '../theme/colors';
 
 type Props = {
@@ -13,29 +13,12 @@ export default function PrimaryButton({ label, onPress, loading, disabled }: Pro
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => ({
-        backgroundColor: COLORS.accent,
-        borderRadius: 14,
-        paddingVertical: 14,
-        minHeight: 56,
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: pressed || disabled ? 0.85 : 1,
-        width: '100%',
-      })}
+      className="w-full min-h-14 items-center bg-gentil-accent self-center rounded-[14px] py-3.5 justify-center"
     >
       {loading ? (
         <ActivityIndicator color={COLORS.text} />
       ) : (
-        <Text
-          style={{
-            fontFamily: 'Fraunces_600SemiBold',
-            fontSize: 19,
-            color: COLORS.text,
-          }}
-        >
-          {label}
-        </Text>
+        <Text className="font-fraunces letter-spacing-2 text-[18px] text-white">{label}</Text>
       )}
     </Pressable>
   );

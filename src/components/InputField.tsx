@@ -21,7 +21,7 @@ export default function InputField({
   error,
 }: Props) {
   return (
-    <View style={{ width: '100%' }}>
+    <View className="w-full">
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -30,22 +30,10 @@ export default function InputField({
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
-        style={{
-          backgroundColor: COLORS.inputBg,
-          borderWidth: 1,
-          borderColor: error ? COLORS.error : COLORS.border,
-          borderRadius: 12,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-          color: COLORS.text,
-          fontSize: 16,
-          fontFamily: 'Fraunces_400Regular',
-        }}
+        className={`rounded-2xl border-b-2 bg-gentil px-5 py-3.5 font-fraunces text-[17px] text-white ${error ? 'border-red-400' : 'border-gentil-border'}`}
       />
       {error ? (
-        <Text style={{ color: COLORS.error, fontSize: 12, marginTop: 4 }}>
-          {error}
-        </Text>
+        <Text className="mt-1 text-xs text-red-400">{error}</Text>
       ) : null}
     </View>
   );

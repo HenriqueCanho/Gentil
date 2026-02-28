@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
+import { ArrowLeft, ChevronLeft } from 'lucide-react-native';
 import CategoryChip from '../../components/CategoryChip';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -196,6 +196,12 @@ export default function OnboardingScreen({ navigation }: Props) {
     }
   };
 
+  const handleBack = () => {
+    if (step > 1) {
+      setStep((s) => s - 1);
+    }
+  };
+
   const handleAuth = async (type: 'Login' | 'Register') => {
     await saveOnboardingResponses(responses);
     await markOnboardingCompleted();
@@ -217,6 +223,28 @@ export default function OnboardingScreen({ navigation }: Props) {
       update({ categories: [...current, cat] });
     }
   };
+
+  const renderBackButton = () => (
+    <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
+      <Pressable
+        onPress={handleBack}
+        hitSlop={12}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.6 : 1,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: "white",
+          backgroundColor: COLORS.inputBg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        })}
+      >
+        <ChevronLeft color={COLORS.text} size={25} />
+      </Pressable>
+    </View>
+  );
 
   const renderProgressDots = () => {
     if (step === 1 || step === 4 || step === 10) return null;
@@ -284,6 +312,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   if (step === 4) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        {renderBackButton()}
         <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24 }}>
           <Text
             style={{
@@ -311,6 +340,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   if (step === 10) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        {renderBackButton()}
         <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24 }}>
           <Text
             style={{
@@ -350,6 +380,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   // ──────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      {renderBackButton()}
       <ScrollView
         contentContainerStyle={{ padding: 24, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
@@ -360,7 +391,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 2: Personal Info */}
         {step === 2 && (
-          <View style={{ gap: 28 }}>
+          <View style={{ gap: 60 }}>
             <View>
               <QuestionLabel>Como você quer ser chamado?</QuestionLabel>
               <QuestionHint>Seu nome aparecerá em suas afirmações</QuestionHint>
@@ -393,7 +424,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 3: Feelings */}
         {step === 3 && (
-          <View style={{ gap: 28 }}>
+          <View style={{ gap: 60 }}>
             <View>
               <QuestionLabel>Qual seu signo?</QuestionLabel>
               <QuestionHint>Essa informação será usada em suas afirmações</QuestionHint>
@@ -426,7 +457,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 5: Notifications */}
         {step === 5 && (
-          <View style={{ gap: 24 }}>
+          <View style={{ gap: 48 }}>
             <View style={{ marginBottom: 8 }}>
               <H>Diga-nos quantas vezes ao dia você quer ser lembrado</H>
               <Sub>Ler afirmações através do seu dia irá melhorá-lo.</Sub>
@@ -576,7 +607,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 6: Dedication */}
         {step === 6 && (
-          <View style={{ gap: 28 }}>
+          <View style={{ gap: 60 }}>
             <View>
               <QuestionLabel>Quanto tempo você vai se dedicar as afirmações?</QuestionLabel>
               <QuestionHint>Pode mudar depois, caso queira</QuestionHint>
@@ -600,7 +631,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 7: Categories */}
         {step === 7 && (
-          <View style={{ gap: 16 }}>
+          <View style={{ gap: 40 }}>
             <View style={{ alignItems: 'center', marginBottom: 8 }}>
               <H center>Por quais categorias você se interessa?</H>
               <Sub center>Elas modificarão sua experiência</Sub>
@@ -621,7 +652,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 8: Struggles */}
         {step === 8 && (
-          <View style={{ gap: 28 }}>
+          <View style={{ gap: 60 }}>
             <View>
               <QuestionLabel>O que têm te atormentado recentemente?</QuestionLabel>
               <QuestionHint>Escolha ao menos um para que te conheçamos</QuestionHint>
@@ -645,7 +676,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* STEP 9: Goals */}
         {step === 9 && (
-          <View style={{ gap: 28 }}>
+          <View style={{ gap: 60 }}>
             <View>
               <QuestionLabel>O que você quer alcançar com o Gentil?</QuestionLabel>
               <QuestionHint>Escolha ao menos um para que veja afirmações baseadas em seu objetivo</QuestionHint>
