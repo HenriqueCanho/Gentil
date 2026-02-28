@@ -1,0 +1,268 @@
+---
+alwaysApply: true
+---
+# Figma Design System Rules — Gentil
+
+## Project Overview
+
+Gentil is a **React Native + Expo** app using **NativeWind v4** (Tailwind CSS for React Native). All UI uses React Native primitives (`View`, `Text`, `TextInput`, `Pressable`, `ScrollView`) with Tailwind utility classes via the `className` prop.
+
+---
+
+## 1. Token Definitions
+
+### Location and Format
+
+- **Config:** [tailwind.config.js](tailwind.config.js) — uses NativeWind preset, no custom theme extensions
+- **Tokens:** Tailwind default palette; no explicit token file
+- **Format:** Utility classes (e.g., `text-slate-50`, `bg-yellow-400`, `rounded-xl`)
+
+### Established Color Palette (from codebase)
+
+| Purpose | Token | Hex |
+|---------|-------|-----|
+| Background (primary) | `bg-slate-950` | `#020617` |
+| Background (secondary) | `bg-slate-900` | `#0f172a` |
+| Border | `border-slate-800` | — |
+| Primary accent | `yellow-400` | `#facc15` |
+| Accent background | `bg-yellow-400/20` | — |
+| Text (primary) | `text-slate-50` | `#f8fafc` |
+| Text (secondary) | `text-slate-100`, `text-slate-400` | — |
+| Error | `text-red-400`, `bg-red-500/90` | — |
+| Button text on accent | `text-slate-900` | — |
+
+### Typography Scale
+
+- **Headings:** `text-3xl font-bold`, `text-2xl font-bold`, `text-lg font-semibold`
+- **Body:** `text-base`, `text-sm`, `text-xs`
+- **Weights:** `font-bold`, `font-semibold`, `font-medium`
+
+### Spacing and Radius
+
+- **Padding:** `px-6 py-10`, `px-4 py-3`, `p-5`, `p-3`
+- **Margins:** `mb-10`, `mb-8`, `mb-4`, `mt-2`, `mt-4`, `mt-6`
+- **Gaps:** `gap-3`, `gap-4`
+- **Radius:** `rounded-xl`, `rounded-2xl`
+
+### IMPORTANT Token Rules
+
+- Use Tailwind utility classes; avoid inline `style` except for values Tailwind cannot express (e.g., `placeholderTextColor`, `ActivityIndicator` color)
+- For hardcoded colors in React Native props (e.g., `color="#facc15"`), use: `#facc15` (yellow-400), `#0f172a` (slate-900), `#020617` (slate-950), `#64748b` (slate-500 placeholder)
+- Never add new color packages; stick to the existing slate/yellow/red palette
+
+---
+
+## 2. Component Library
+
+### Location
+
+- **Screens:** `src/screens/` — LoginScreen, RegisterScreen, DashboardScreen
+- **No shared component library** — UI is screen-based with inline components
+
+### Architecture
+
+- React Native primitives: `View`, `Text`, `TextInput`, `Pressable`, `ScrollView`, `ActivityIndicator`
+- No Storybook; no dedicated `components/` directory
+- Screens are self-contained with form logic and layout
+
+### Component Patterns (from existing screens)
+
+```tsx
+// Screen container
+<View className="flex-1 bg-slate-950 px-6 py-10">
+
+// Icon container (12x12, rounded, accent bg)
+<View className="h-12 w-12 items-center justify-center rounded-xl bg-yellow-400/20">
+  <IconName color="#facc15" size={22} />
+</View>
+
+// Primary button
+<Pressable className="mt-2 items-center rounded-xl bg-yellow-400 px-4 py-3">
+  <Text className="font-semibold text-slate-900">Label</Text>
+</Pressable>
+
+// Input field
+<TextInput
+  className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-slate-50"
+  placeholderTextColor="#64748b"
+/>
+
+// Card/panel
+<View className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+
+// Error text
+<Text className="text-sm text-red-400">{error}</Text>
+```
+
+### IMPORTANT Component Rules
+
+- Place new screens in `src/screens/`
+- Reuse these patterns for consistency; do not introduce new layout or styling patterns without justification
+- All components must use `className` for styling (NativeWind)
+- Use `Pressable` for buttons/links, not `TouchableOpacity` or `Button`
+
+---
+
+## 3. Frameworks and Libraries
+
+| Category | Technology |
+|----------|------------|
+| UI Framework | React 19.1, React Native 0.81 |
+| Styling | NativeWind 4.2.2 (Tailwind for RN) |
+| Navigation | React Navigation 7 (native-stack) |
+| Backend | Supabase |
+| Build | Expo 54, Metro, Babel |
+
+### Config Files
+
+- [metro.config.js](metro.config.js) — Metro + NativeWind (`withNativeWind`, `input: './global.css'`)
+- [babel.config.js](babel.config.js) — `babel-preset-expo`, `nativewind/babel`
+- [global.css](global.css) — `@tailwind base/components/utilities`
+
+---
+
+## 4. Asset Management
+
+### Location
+
+- **Directory:** `assets/`
+- **Files:** `icon.png`, `splash-icon.png`, `favicon.png`, `android-icon-*.png`
+- **Config:** [app.json](app.json) — Expo asset paths
+
+### Rules
+
+- Store static images in `assets/`
+- Reference via relative paths: `./assets/icon.png`
+- IMPORTANT: If Figma MCP returns a `localhost` source for an image or SVG, use that source directly
+- IMPORTANT: Do not add new icon packages; use Lucide (see below) or assets from Figma payload
+- Do not use placeholders when a localhost source is provided by Figma MCP
+
+---
+
+## 5. Icon System
+
+### Library
+
+- **Package:** `lucide-react-native` (v0.575.0)
+- **Import:** `import { IconName } from 'lucide-react-native';`
+
+### Naming
+
+- PascalCase: `LogIn`, `UserPlus`, `LogOut`, `ShieldCheck`
+
+### Usage Pattern
+
+```tsx
+import { LogIn } from 'lucide-react-native';
+
+<View className="h-12 w-12 items-center justify-center rounded-xl bg-yellow-400/20">
+  <LogIn color="#facc15" size={22} />
+</View>
+```
+
+### Rules
+
+- Use Lucide icons only; do not add other icon libraries
+- Pass `color` and `size` props explicitly
+- Standard sizes: 18 (small), 22 (medium), 24 (large)
+
+---
+
+## 6. Styling Approach
+
+### Methodology
+
+- **Utility-first:** Tailwind via NativeWind
+- **No CSS Modules, styled-components, or inline StyleSheet**
+- **Global styles:** [global.css](global.css) — Tailwind directives only
+
+### Responsive Design
+
+- No breakpoints in use; mobile-first, single layout
+- Use `flex-1`, `flex-row`, `gap-*`, `items-center`, `justify-center` for layout
+
+### IMPORTANT Styling Rules
+
+- Use `className` for all styling
+- Map Figma design tokens to Tailwind classes (slate, yellow, red)
+- Replace any Figma-suggested React web + Tailwind with React Native + NativeWind equivalents (e.g., `div` → `View`, `button` → `Pressable`, `input` → `TextInput`)
+- Use `placeholderTextColor` for input placeholders; Tailwind does not style placeholder color in RN
+
+---
+
+## 7. Project Structure
+
+```
+/
+├── App.tsx                 # Root, navigation, auth state
+├── index.ts                # Entry, registers global.css
+├── global.css              # Tailwind directives
+├── tailwind.config.js
+├── metro.config.js
+├── babel.config.js
+├── app.json                # Expo config
+├── assets/                 # Static assets
+└── src/
+    ├── screens/            # Screen components
+    ├── navigation/         # types.ts (RootStackParamList)
+    ├── lib/                # supabase.ts, affirmations.ts
+    └── utils/              # authValidation.ts
+```
+
+### Feature Organization
+
+- Screens in `src/screens/`
+- Navigation types in `src/navigation/types.ts`
+- API/Supabase in `src/lib/`
+- Validation/helpers in `src/utils/`
+
+---
+
+## Figma MCP Integration Rules
+
+### Required Flow (do not skip)
+
+1. Run `get_design_context` for the exact node(s) to fetch layout, typography, colors, spacing
+2. If the response is truncated, run `get_metadata` to get the node map, then fetch specific child nodes with `get_design_context`
+3. Run `get_screenshot` for visual reference
+4. Download any assets from the Figma MCP payload (use localhost sources directly)
+5. Translate Figma output (typically React web + Tailwind) into **React Native + NativeWind**
+6. Validate against the Figma screenshot before marking complete
+
+### Translation Rules
+
+- **Treat Figma MCP output as design reference, not final code** — it is usually React DOM + Tailwind
+- **Convert to React Native:**
+  - `div`, `section`, `main` → `View`
+  - `button`, `a` → `Pressable`
+  - `input` → `TextInput`
+  - `img` → `Image` (from `react-native`)
+  - `span`, `p`, `h1` → `Text`
+- **Replace web Tailwind with NativeWind equivalents** — most utilities work; avoid web-only (e.g., `hover:`) or use `Pressable` state
+- **Reuse existing screen patterns** — icon containers, buttons, inputs, cards
+- **Use project color tokens** — slate-950/900/800, yellow-400, red-400/500
+- **Respect navigation** — type-safe `RootStackParamList`, `NativeStackScreenProps`
+- **Strive for 1:1 visual parity** with the Figma design
+- **Validate** final UI against the Figma screenshot
+
+### Asset Handling
+
+- If Figma MCP returns a localhost source for an image or SVG, use it directly
+- Do not import or add new icon packages
+- Do not use placeholders when a localhost source is provided
+- Store downloaded assets in `assets/` when persisting
+
+---
+
+## Validation Checklist
+
+Before marking a Figma implementation complete:
+
+- [ ] Layout matches (spacing, alignment, sizing)
+- [ ] Typography matches (font size, weight via Tailwind)
+- [ ] Colors match (slate, yellow, red palette)
+- [ ] Interactive states work (Pressable, disabled)
+- [ ] All components use React Native primitives + `className`
+- [ ] No web-only elements (div, button, input)
+- [ ] Icons from Lucide or Figma assets
+- [ ] Assets render correctly
