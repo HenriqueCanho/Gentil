@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,13 +9,14 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 
 import InputField from '../components/InputField';
 import PrimaryButton from '../components/PrimaryButton';
 import SecondaryButton from '../components/SecondaryButton';
+import Toast from '../components/Toast';
+import { useToast } from '../hooks/useToast';
 import { supabase } from '../lib/supabase';
-import { syncOnboardingToSupabase } from '../lib/profiles';
 import type { RootStackParamList } from '../navigation/types';
 import { COLORS } from '../theme/colors';
 import {
@@ -33,13 +33,13 @@ export default function RegisterScreen({ navigation }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<AuthFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
       return;
     }
-
     navigation.navigate('Login', {});
   };
 
@@ -49,43 +49,48 @@ export default function RegisterScreen({ navigation }: Props) {
     if (hasValidationErrors(formErrors)) return;
 
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-    });
-    setIsLoading(false);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
 
-    if (error) {
-      Alert.alert('Falha no cadastro', error.message);
-      return;
+      if (error) {
+        showToast(error.message);
+        return;
+      }
+
+      showToast('Confira seu e-mail para confirmar a conta.', 'success');
+      // Navigation handled by App.tsx when session is confirmed
+    } catch (e) {
+      showToast('Erro inesperado. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
-
-    await syncOnboardingToSupabase();
-    Alert.alert('Cadastro enviado', 'Confira seu e-mail para confirmar a conta.');
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
+    <SafeAreaView className="flex-1 bg-gentil-bg">
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+      />
+
+      <View className="px-4 py-2">
         <Pressable
           onPress={handleBack}
           hitSlop={12}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: COLORS.inputBg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          })}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          className="h-10 w-10 items-center justify-center rounded-full border border-white bg-gentil-input"
         >
-          <ArrowLeft color={COLORS.text} size={20} />
+          <ChevronLeft color={COLORS.text} size={22} />
         </Pressable>
       </View>
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
@@ -93,28 +98,12 @@ export default function RegisterScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text
-            style={{
-              fontFamily: 'Fraunces_700Bold',
-              fontSize: 32,
-              color: COLORS.text,
-              marginBottom: 8,
-            }}
-          >
-            Criar conta
-          </Text>
-          <Text
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 15,
-              color: COLORS.muted,
-              marginBottom: 40,
-            }}
-          >
+          <Text className="mb-2 font-fraunces-bold text-[32px] text-white">Criar conta</Text>
+          <Text className="mb-10 font-fraunces text-[15px] text-gentil-muted">
             Registre-se para começar sua jornada.
           </Text>
 
-          <View style={{ gap: 14 }}>
+          <View className="gap-3.5">
             <InputField
               value={email}
               onChangeText={(v) => {
@@ -148,7 +137,7 @@ export default function RegisterScreen({ navigation }: Props) {
               error={errors.confirmPassword}
             />
 
-            <View style={{ marginTop: 8, gap: 12 }}>
+            <View className="mt-2 gap-3">
               <PrimaryButton label="Criar conta" onPress={handleSignUp} loading={isLoading} />
               <SecondaryButton label="Já tenho conta" onPress={handleBack} />
             </View>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -30,10 +30,12 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import MainTabNavigator from './src/screens/MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const prevSessionRef = useRef<Session | null>(null);
 
   const [fontsLoaded] = useFonts({
     Fraunces_400Regular,
@@ -85,6 +87,21 @@ export default function App() {
     };
   }, []);
 
+  // Navigate when session state changes (login / logout)
+  useEffect(() => {
+    if (isLoadingSession) return;
+    if (!navigationRef.isReady()) return;
+
+    const hadSession = prevSessionRef.current;
+    prevSessionRef.current = session;
+
+    if (session && !hadSession) {
+      navigationRef.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } else if (!session && hadSession) {
+      navigationRef.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+    }
+  }, [session, isLoadingSession]);
+
   if (!fontsLoaded || isLoadingSession) {
     return (
       <View className="flex-1 items-center justify-center bg-gentil-bg">
@@ -102,7 +119,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar style="light" />
       <Stack.Navigator
         initialRouteName={initialRoute}
@@ -115,9 +132,7 @@ export default function App() {
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-        {session && (
-          <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-        )}
+        <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

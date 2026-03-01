@@ -11,36 +11,13 @@ export default function CategoryChip({ label, selected, onToggle }: Props) {
   return (
     <Pressable
       onPress={onToggle}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: selected ? COLORS.accent + '30' : COLORS.chip,
-        borderWidth: selected ? 1.5 : 1,
-        borderColor: selected ? COLORS.accent : COLORS.border,
-        borderRadius: 12,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        opacity: pressed ? 0.8 : 1,
-        flex: 1,
-      })}
+      className="flex-row items-center gap-4 bg-gentil-bg border-b-2 border-gentil-border rounded-xl px-4 py-3"
     >
-      <Text
-        style={{
-          color: selected ? COLORS.accent : COLORS.muted,
-          fontSize: 16,
-          fontFamily: 'Fraunces_400Regular',
-        }}
-      >
+      <Text className={`font-fraunces ${selected ? 'text-gentil-accent' : 'text-gentil-muted'} text-[22px] max-h-7 max-w-5 leading-7 text-center`}>
         {selected ? '✓' : '+'}
       </Text>
       <Text
-        style={{
-          color: COLORS.text,
-          fontSize: 14,
-          fontFamily: 'Fraunces_400Regular',
-          flex: 1,
-        }}
+        className="font-fraunces text-white text-[14px] flex-1"
         numberOfLines={1}
       >
         {label}
