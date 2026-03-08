@@ -8,61 +8,46 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Heart, RefreshCw, Share2 } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Flame, Heart, Share2, User, BookOpen, Repeat } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   listAffirmations,
   recordAffirmationRead,
+  getDailyReadIds,
   type Affirmation,
 } from '../lib/affirmations';
 import { loadAppPreferences, saveAppPreferences } from '../lib/appPreferences';
 import { isFavorited, toggleFavorite } from '../lib/favorites';
+import { isReposted, toggleRepost } from '../lib/reposts';
 import { loadUserStreak, incrementStreak } from '../lib/streaks';
-import { COLORS } from '../theme/colors';
-
-type AnimationMode = 'fade' | 'slide' | 'scale';
-
-const MODES: Array<{ id: AnimationMode; label: string }> = [
-  { id: 'fade', label: 'Fade' },
-  { id: 'slide', label: 'Slide' },
-  { id: 'scale', label: 'Scale' },
-];
+import { useTheme } from '../context/ThemeContext';
+import ShareModal from '../components/ShareModal';
 
 export default function MainScreen() {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const navigation = useNavigation();
   const [affirmation, setAffirmation] = useState<Affirmation | null>(null);
   const [allAffirmations, setAllAffirmations] = useState<Affirmation[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [favorited, setFavorited] = useState(false);
+  const [reposted, setReposted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
-  const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
   const [showCategoryTags, setShowCategoryTags] = useState(true);
+  const [readingGoal, setReadingGoal] = useState(5);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [showShareModal, setShowShareModal] = useState(false);
   const cardAnim = useRef(new Animated.Value(1)).current;
+  const affirmationRef = useRef<Affirmation | null>(null);
 
-  const playTransition = (mode: AnimationMode) => {
-    if (mode === 'slide') {
-      cardAnim.setValue(16);
-      Animated.spring(cardAnim, {
-        toValue: 0,
-        damping: 16,
-        stiffness: 220,
-        useNativeDriver: true,
-      }).start();
-      return;
-    }
+  useEffect(() => {
+    affirmationRef.current = affirmation;
+  }, [affirmation]);
 
-    if (mode === 'scale') {
-      cardAnim.setValue(0.95);
-      Animated.spring(cardAnim, {
-        toValue: 1,
-        damping: 16,
-        stiffness: 220,
-        useNativeDriver: true,
-      }).start();
-      return;
-    }
-
+  const playTransition = () => {
     cardAnim.setValue(0);
     Animated.timing(cardAnim, {
       toValue: 1,
@@ -73,44 +58,55 @@ export default function MainScreen() {
 
   const load = useCallback(async () => {
     try {
-      setLoading(true);
-      const [items, streakData, prefs] = await Promise.all([
+      // Don't set loading(true) here to avoid flicker on focus
+      const [items, streakData, prefs, ids] = await Promise.all([
         listAffirmations(50),
         loadUserStreak(),
         loadAppPreferences(),
+        getDailyReadIds(),
       ]);
 
       setAllAffirmations(items);
       setStreak(streakData);
-      setAnimationMode(prefs.mainAnimationMode);
       setShowCategoryTags(prefs.showCategoryTags);
+      setReadingGoal(prefs.dailyReadingGoal);
+      setReadIds(ids);
 
-      if (items.length > 0) {
+      if (items.length > 0 && !affirmationRef.current) {
         const idx = new Date().getDate() % items.length;
         const first = items[idx];
         setCurrentIndex(idx);
         setAffirmation(first);
         setFavorited(await isFavorited(first.id));
+        setReposted(await isReposted(first.id));
         await recordAffirmationRead(first.id);
+        setReadIds((prev) => new Set(prev).add(first.id));
       }
+    } catch (e) {
+      // ignore
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    load();
-    incrementStreak().catch(() => {});
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      incrementStreak().catch(() => { });
+    }, [load])
+  );
 
   const setCurrentAffirmation = async (idx: number) => {
     const selected = allAffirmations[idx];
     if (!selected) return;
     setCurrentIndex(idx);
     setAffirmation(selected);
+    playTransition();
+    
     setFavorited(await isFavorited(selected.id));
+    setReposted(await isReposted(selected.id));
     await recordAffirmationRead(selected.id);
-    playTransition(animationMode);
+    setReadIds((prev) => new Set(prev).add(selected.id));
   };
 
   const handleNext = async () => {
@@ -125,158 +121,127 @@ export default function MainScreen() {
     setFavorited(next);
   };
 
-  const handleShare = async () => {
+  const handleRepost = async () => {
     if (!affirmation) return;
-    await Share.share({ message: affirmation.texto });
+    const next = await toggleRepost(affirmation.id);
+    setReposted(next);
   };
 
-  const handleModeChange = async (mode: AnimationMode) => {
-    setAnimationMode(mode);
-    await saveAppPreferences({ mainAnimationMode: mode });
+  const handleShare = () => {
+    if (!affirmation) return;
+    setShowShareModal(true);
   };
 
-  const styleForAnimation = () => {
-    if (animationMode === 'slide') {
-      return { transform: [{ translateY: cardAnim }] };
-    }
+  const styleForAnimation = () => ({ opacity: cardAnim });
 
-    if (animationMode === 'scale') {
-      return { transform: [{ scale: cardAnim }] };
-    }
-
-    return { opacity: cardAnim };
-  };
+  // Use View flex-1 instead of SafeAreaView to allow full background coverage
+  // Manually handle top/bottom insets for elements
+  const topBarTop = insets.top + 16;
+  const bottomBarBottom = insets.bottom + 80; // Above tab bar
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gentil-bg">
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 24, paddingBottom: 0 }}
+    <View
+      className="flex-1"
+      style={{ backgroundColor: colors.bg }}
+    >
+      <View
+        className="absolute left-0 right-0 items-center z-10"
+        style={{ top: topBarTop }}
       >
-        <Text className="font-fraunces text-sm text-gentil-muted">Seu espaço principal</Text>
-        <Text className="mt-1 font-fraunces-bold text-3xl text-white">Affirmações</Text>
-
-        <View className="mt-3 flex-row items-center gap-2">
-          <Text className="text-base">🔥</Text>
-          <Text className="font-fraunces-semi text-sm text-accent">
-            {streak} {streak === 1 ? 'dia' : 'dias'} de sequência
+        <View
+          className="flex-row items-center gap-2 rounded-full px-4 py-2"
+          style={{ backgroundColor: colors.inputBg }}
+        >
+          <BookOpen size={16} color={colors.accent} fill={colors.accent} />
+          <Text className="font-fraunces-semi text-xs" style={{ color: colors.text }}>
+            {readIds.size}/{readingGoal}
           </Text>
-        </View>
-
-        <View className="mt-6 rounded-2xl border border-gentil-border bg-gentil-input p-3">
-          <Text className="mb-2 font-fraunces text-xs text-gentil-muted">
-            Animação ao trocar afirmação
-          </Text>
-          <View className="flex-row gap-2">
-            {MODES.map((mode) => {
-              const active = mode.id === animationMode;
-              return (
-                <Pressable
-                  key={mode.id}
-                  onPress={() => handleModeChange(mode.id)}
-                  className={`rounded-xl px-3 py-2 ${
-                    active ? 'bg-accent' : 'bg-gentil-chip'
-                  }`}
-                >
-                  <Text
-                    className={`font-fraunces-semi text-xs ${
-                      active ? 'text-slate-900' : 'text-white'
-                    }`}
-                  >
-                    {mode.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View className="mt-4 flex-row items-center justify-between rounded-2xl border border-gentil-border bg-gentil-input px-4 py-3">
-          <Text className="font-fraunces text-sm text-white">Mostrar categoria na frase</Text>
-          <Pressable
-            onPress={async () => {
-              const next = !showCategoryTags;
-              setShowCategoryTags(next);
-              await saveAppPreferences({ showCategoryTags: next });
-            }}
-            className={`rounded-full px-3 py-1 ${showCategoryTags ? 'bg-accent' : 'bg-gentil-chip'}`}
-          >
-            <Text className={`font-fraunces-semi text-xs ${showCategoryTags ? 'text-slate-900' : 'text-white'}`}>
-              {showCategoryTags ? 'ON' : 'OFF'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View className="mt-6">
-          {loading ? (
-            <View className="min-h-[260px] items-center justify-center rounded-2xl border border-gentil-border bg-gentil-card">
-              <ActivityIndicator size="large" color={COLORS.accent} />
-            </View>
-          ) : affirmation ? (
-            <Animated.View
-              style={styleForAnimation()}
-              className="min-h-[260px] items-center justify-center rounded-2xl border border-gentil-border bg-gentil-card p-8"
-            >
-              <Text className="text-center font-fraunces-bold text-[24px] leading-9 text-white">
-                {affirmation.texto}
-              </Text>
-              {showCategoryTags && (
-                <View className="mt-5 rounded-md bg-accent/20 px-3 py-1">
-                  <Text className="font-fraunces text-xs text-accent">#{affirmation.categoria}</Text>
-                </View>
-              )}
-            </Animated.View>
-          ) : (
-            <View className="min-h-[260px] items-center justify-center rounded-2xl border border-gentil-border bg-gentil-card p-8">
-              <Text className="text-center font-fraunces text-sm text-gentil-muted">
-                Nenhuma afirmação disponível.
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View className="mt-5 flex-row justify-center gap-6">
-          <Pressable onPress={handleFavorite} className="items-center gap-1">
-            <Heart
-              color={favorited ? COLORS.accent : COLORS.muted}
-              fill={favorited ? COLORS.accent : 'transparent'}
-              size={26}
+          <View className="h-1 w-16 rounded-full bg-gray-200 overflow-hidden ml-2">
+            <View
+              className="h-full"
+              style={{
+                backgroundColor: colors.accent,
+                width: `${Math.min((readIds.size / readingGoal) * 100, 100)}%`,
+              }}
             />
-            <Text className="font-fraunces text-xs text-gentil-muted">Favoritar</Text>
-          </Pressable>
-          <Pressable onPress={handleNext} className="items-center gap-1">
-            <RefreshCw color={COLORS.muted} size={26} />
-            <Text className="font-fraunces text-xs text-gentil-muted">Próxima</Text>
-          </Pressable>
-          <Pressable onPress={handleShare} className="items-center gap-1">
-            <Share2 color={COLORS.muted} size={26} />
-            <Text className="font-fraunces text-xs text-gentil-muted">Compartilhar</Text>
-          </Pressable>
-        </View>
-
-        {allAffirmations.length > 1 && (
-          <View className="mt-8">
-            <Text className="mb-3 font-fraunces-bold text-lg text-white">Lista completa</Text>
-            <View className="gap-2.5">
-              {allAffirmations.slice(0, 12).map((item, idx) => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => setCurrentAffirmation(idx)}
-                  className={`rounded-xl border p-4 ${
-                    idx === currentIndex
-                      ? 'border-accent/40 bg-gentil-card'
-                      : 'border-gentil-border bg-gentil-input'
-                  }`}
-                >
-                  <Text numberOfLines={2} className="font-fraunces text-sm leading-5 text-white">
-                    {item.texto}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
           </View>
+        </View>
+      </View>
+
+      {/* Main Content */}
+      <Pressable
+        onPress={handleNext}
+        className="flex-1 items-center justify-center px-8"
+      >
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.accent} />
+        ) : affirmation ? (
+          <Animated.View style={[styleForAnimation(), { alignItems: 'center' }]}>
+            <Text
+              className="text-center font-fraunces-bold text-[32px] leading-10"
+              style={{ color: colors.text }}
+            >
+              {affirmation.texto}
+            </Text>
+            {showCategoryTags && (
+              <View
+                className="mt-6 rounded-full px-4 py-1.5"
+                style={{ backgroundColor: colors.inputBg }}
+              >
+                <Text className="font-fraunces text-xs uppercase tracking-widest" style={{ color: colors.accent }}>
+                  {affirmation.categoria}
+                </Text>
+              </View>
+            )}
+          </Animated.View>
+        ) : (
+          <Text className="text-center font-fraunces text-lg" style={{ color: colors.muted }}>
+            Nenhuma afirmação disponível.
+          </Text>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </Pressable>
+
+      {/* Bottom Actions Floating - Vertical on Right */}
+      <View
+        className="absolute right-6 flex-col items-center gap-6"
+        style={{ bottom: bottomBarBottom }}
+      >
+        <Pressable
+          onPress={handleFavorite}
+          className="items-center justify-center"
+        >
+          <Heart
+            color={favorited ? colors.accent : colors.text}
+            fill={favorited ? colors.accent : 'transparent'}
+            size={32}
+          />
+        </Pressable>
+
+        <Pressable
+          onPress={handleRepost}
+          className="items-center justify-center"
+        >
+          <Repeat
+            color={reposted ? colors.accent : colors.text}
+            size={32}
+          />
+        </Pressable>
+
+        <Pressable
+          onPress={handleShare}
+          className="items-center justify-center"
+        >
+          <Share2 color={colors.text} size={28} />
+        </Pressable>
+      </View>
+
+      {affirmation && (
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          affirmation={affirmation}
+        />
+      )}
+    </View>
   );
 }

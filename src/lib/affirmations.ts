@@ -73,3 +73,28 @@ export async function recordAffirmationRead(affirmationId: string): Promise<void
     affirmation_id: affirmationId,
   });
 }
+
+export async function getDailyReadIds(): Promise<Set<string>> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Set();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from('user_read_history')
+    .select('affirmation_id')
+    .eq('user_id', user.id)
+    .gte('read_at', today.toISOString());
+
+  if (error || !data) return new Set();
+  
+  return new Set(data.map((d) => d.affirmation_id));
+}
+
+export async function getDailyReadCount(): Promise<number> {
+  const ids = await getDailyReadIds();
+  return ids.size;
+}

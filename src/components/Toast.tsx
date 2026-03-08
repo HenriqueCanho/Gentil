@@ -2,12 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 import { X, AlertCircle, CheckCircle, Info } from 'lucide-react-native';
 import type { ToastType } from '../hooks/useToast';
-
-const CONFIG: Record<ToastType, { color: string; Icon: typeof AlertCircle }> = {
-  error: { color: '#ef4444', Icon: AlertCircle },
-  success: { color: '#D4AF37', Icon: CheckCircle },
-  info: { color: 'rgba(255,255,255,0.6)', Icon: Info },
-};
+import { useTheme } from '../context/ThemeContext';
 
 type Props = {
   message: string;
@@ -17,10 +12,17 @@ type Props = {
 };
 
 export default function Toast({ message, type = 'error', visible, onHide }: Props) {
+  const { colors } = useTheme();
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
-  const { color, Icon } = CONFIG[type];
+  const config = {
+    error: { color: colors.error, Icon: AlertCircle },
+    success: { color: colors.accent, Icon: CheckCircle },
+    info: { color: colors.muted, Icon: Info },
+  };
+
+  const { color, Icon } = config[type];
 
   useEffect(() => {
     if (visible) {

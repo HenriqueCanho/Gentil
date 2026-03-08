@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogOut, Bell, User, Flame } from 'lucide-react-native';
 
 import { supabase } from '../lib/supabase';
@@ -72,9 +66,11 @@ function SettingRow({
 }
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const [userEmail, setUserEmail] = useState('');
   const [streak, setStreak] = useState(0);
   const [notifPerDay, setNotifPerDay] = useState(10);
+  const bottomPadding = 40 + insets.bottom;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -104,9 +100,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingBottom: 40, gap: 16 }}
+        contentContainerStyle={{ padding: 24, paddingBottom: bottomPadding, gap: 16 }}
         showsVerticalScrollIndicator={false}
       >
         <Text

@@ -81,7 +81,7 @@ export async function scheduleDailyNotifications(
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Gentil 🌱',
+        title: 'Gentil',
         body: DAILY_MESSAGES[i % DAILY_MESSAGES.length],
       },
       trigger: {

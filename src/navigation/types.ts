@@ -1,9 +1,14 @@
 export type RootStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  Register: undefined;
   Onboarding: undefined;
-  Login: { fromOnboarding?: boolean };
-  Register: { fromOnboarding?: boolean };
   MainTabs: undefined;
+  Reposts: undefined;
 };
+
+/** Target route after auth + onboarding gating */
+export type AuthGateRoute = 'Login' | 'Onboarding' | 'MainTabs';
 
 export type MainTabParamList = {
   Theme: undefined;

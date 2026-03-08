@@ -79,7 +79,7 @@ export default function SelectField({
         >
           {value || placeholder}
         </Text>
-        <View className="ml-3 h-8 w-8 items-center justify-center rounded-lg">
+        <View className="ml-3 h-8 w-8 items-center justify-center">
           <ChevronDown color={COLORS.accent} size={20} />
         </View>
       </Pressable>
@@ -125,11 +125,7 @@ export default function SelectField({
                   className="mb-1 flex-row items-center rounded-2xl border-b-2 border-gentil-border px-5 py-4"
                 >
                   <Text
-                    className={`flex-1 text-[17px] ${
-                      opt === value
-                        ? 'font-fraunces-semi text-accent'
-                        : 'font-fraunces text-white'
-                    }`}
+                    className={`flex-1 text-[17px]`} style={{ color: opt === value ? COLORS.accent : COLORS.text }}
                   >
                     {opt}
                   </Text>

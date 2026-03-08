@@ -1,19 +1,19 @@
 /** @type {import('tailwindcss').Config} */
+const tokens = require('./src/theme/tokens');
+
 module.exports = {
   content: ['./App.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
-        accent: '#D4AF37', // Adiciona a cor accent diretamente
         gentil: {
-          bg: '#0A1A19',
-          card: '#2A6360',
-          chip: '#275C59',
-          accent: '#D4AF37',
-          border: '#FFFFFF33',
-          input: '#FFFFFF1A',
-          muted: '#FFFFFF99',
+          accent: tokens.accent,
+          bg: tokens.bg,
+          text: tokens.text,
+          muted: tokens.muted,
+          border: tokens.border,
+          card: tokens.card,
         },
       },
       fontFamily: {

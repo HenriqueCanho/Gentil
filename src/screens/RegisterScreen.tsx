@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 
 import InputField from '../components/InputField';
@@ -18,7 +18,7 @@ import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
-import { COLORS } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import {
   hasValidationErrors,
   validateRegisterForm,
@@ -28,6 +28,8 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export default function RegisterScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,7 +42,7 @@ export default function RegisterScreen({ navigation }: Props) {
       navigation.goBack();
       return;
     }
-    navigation.navigate('Login', {});
+    navigation.navigate('Login');
   };
 
   const handleSignUp = async () => {
@@ -49,28 +51,38 @@ export default function RegisterScreen({ navigation }: Props) {
     if (hasValidationErrors(formErrors)) return;
 
     setIsLoading(true);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout na conexão')), 10000)
+    );
+
     try {
-      const { error } = await supabase.auth.signUp({
+      const signUpPromise = supabase.auth.signUp({
         email: email.trim(),
         password,
       });
 
+      const { data, error } = (await Promise.race([
+        signUpPromise,
+        timeoutPromise,
+      ])) as any;
+
       if (error) {
         showToast(error.message);
+        setIsLoading(false);
         return;
       }
 
       showToast('Confira seu e-mail para confirmar a conta.', 'success');
       // Navigation handled by App.tsx when session is confirmed
-    } catch (e) {
-      showToast('Erro inesperado. Tente novamente.');
-    } finally {
+    } catch (e: any) {
+      showToast(e.message === 'Timeout na conexão' ? 'A conexão está demorando muito. Verifique sua internet.' : 'Erro inesperado. Tente novamente.');
       setIsLoading(false);
     }
   };
+  const bottomPadding = 24 + insets.bottom;
 
   return (
-    <SafeAreaView className="flex-1 bg-gentil-bg">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg }}>
       <Toast
         message={toast.message}
         type={toast.type}
@@ -82,10 +94,14 @@ export default function RegisterScreen({ navigation }: Props) {
         <Pressable
           onPress={handleBack}
           hitSlop={12}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          className="h-10 w-10 items-center justify-center rounded-full border border-white bg-gentil-input"
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.6 : 1,
+            borderColor: colors.border,
+            backgroundColor: colors.inputBg,
+          })}
+          className="h-10 w-10 items-center justify-center"
         >
-          <ChevronLeft color={COLORS.text} size={22} />
+          <ChevronLeft color={colors.text} size={22} />
         </Pressable>
       </View>
 
@@ -94,12 +110,19 @@ export default function RegisterScreen({ navigation }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            padding: 24,
+            paddingBottom: bottomPadding,
+            justifyContent: 'center',
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text className="mb-2 font-fraunces-bold text-[32px] text-white">Criar conta</Text>
-          <Text className="mb-10 font-fraunces text-[15px] text-gentil-muted">
+          <Text className="mb-2 font-fraunces-bold text-[32px]" style={{ color: colors.text }}>
+            Criar conta
+          </Text>
+          <Text className="mb-10 font-fraunces text-[15px]" style={{ color: colors.text }}>
             Registre-se para começar sua jornada.
           </Text>
 
@@ -138,8 +161,15 @@ export default function RegisterScreen({ navigation }: Props) {
             />
 
             <View className="mt-2 gap-3">
-              <PrimaryButton label="Criar conta" onPress={handleSignUp} loading={isLoading} />
-              <SecondaryButton label="Já tenho conta" onPress={handleBack} />
+              <PrimaryButton
+                label={isLoading ? 'Criando...' : 'Criar conta'}
+                onPress={handleSignUp}
+                loading={isLoading}
+              />
+              <SecondaryButton
+                label="Já tenho conta"
+                onPress={() => navigation.navigate('Login')}
+              />
             </View>
           </View>
         </ScrollView>

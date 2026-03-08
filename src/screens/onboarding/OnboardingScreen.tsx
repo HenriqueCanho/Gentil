@@ -5,7 +5,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ArrowLeft, ChevronLeft } from 'lucide-react-native';
 import CategoryChip from '../../components/CategoryChip';
@@ -14,8 +14,9 @@ import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
 import SelectField from '../../components/SelectField';
 import TimeRangePicker from '../../components/TimeRangePicker';
-import { COLORS } from '../../theme/colors';
+import { useTheme } from '../../context/ThemeContext';
 import type { RootStackParamList } from '../../navigation/types';
+import { syncOnboardingToSupabase } from '../../lib/profiles';
 import {
   markOnboardingCompleted,
   saveOnboardingResponses,
@@ -113,12 +114,13 @@ const CATEGORIES = [
 ];
 
 function H(props: { children: string; center?: boolean }) {
+  const { colors } = useTheme();
   return (
     <Text
       style={{
         fontFamily: 'Fraunces_700Bold',
         fontSize: 28,
-        color: COLORS.text,
+        color: colors.text,
         textAlign: props.center ? 'center' : 'left',
         lineHeight: 36,
       }}
@@ -129,12 +131,13 @@ function H(props: { children: string; center?: boolean }) {
 }
 
 function Sub(props: { children: string; center?: boolean }) {
+  const { colors } = useTheme();
   return (
     <Text
       style={{
         fontFamily: 'Fraunces_400Regular',
         fontSize: 15,
-        color: COLORS.muted,
+        color: colors.muted,
         textAlign: props.center ? 'center' : 'left',
         lineHeight: 22,
         marginTop: 8,
@@ -146,12 +149,13 @@ function Sub(props: { children: string; center?: boolean }) {
 }
 
 function QuestionLabel(props: { children: string }) {
+  const { colors } = useTheme();
   return (
     <Text
       style={{
         fontFamily: 'Fraunces_700Bold',
         fontSize: 20,
-        color: COLORS.text,
+        color: colors.text,
         textAlign: 'center',
         lineHeight: 28,
         marginBottom: 6,
@@ -163,12 +167,13 @@ function QuestionLabel(props: { children: string }) {
 }
 
 function QuestionHint(props: { children: string }) {
+  const { colors } = useTheme();
   return (
     <Text
       style={{
         fontFamily: 'Fraunces_400Regular',
         fontSize: 13,
-        color: COLORS.muted,
+        color: colors.muted,
         textAlign: 'center',
         marginBottom: 12,
       }}
@@ -179,7 +184,10 @@ function QuestionHint(props: { children: string }) {
 }
 
 export default function OnboardingScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [step, setStep] = useState(1);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [responses, setResponses] = useState<OnboardingResponses>({
     notificationsPerDay: 10,
     notificationStartTime: '08:00',
@@ -203,10 +211,16 @@ export default function OnboardingScreen({ navigation }: Props) {
     }
   };
 
-  const handleAuth = async (type: 'Login' | 'Register') => {
-    await saveOnboardingResponses(responses);
-    await markOnboardingCompleted();
-    navigation.navigate(type, { fromOnboarding: true });
+  const handleComplete = async () => {
+    setIsCompleting(true);
+    try {
+      await saveOnboardingResponses(responses);
+      await markOnboardingCompleted();
+      await syncOnboardingToSupabase().catch(() => {});
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const incrementNotifications = () => {
@@ -234,15 +248,12 @@ export default function OnboardingScreen({ navigation }: Props) {
           opacity: pressed ? 0.6 : 1,
           width: 40,
           height: 40,
-          borderRadius: 20,
-          borderWidth: 1,
-          borderColor: "white",
-          backgroundColor: COLORS.inputBg,
+          backgroundColor: colors.inputBg,
           alignItems: 'center',
           justifyContent: 'center',
         })}
       >
-        <ChevronLeft color={COLORS.text} size={25} />
+        <ChevronLeft color={colors.text} size={25} />
       </Pressable>
     </View>
   );
@@ -254,7 +265,10 @@ export default function OnboardingScreen({ navigation }: Props) {
         {Array.from({ length: TOTAL_STEPS - 2 }).map((_, i) => (
           <View
             key={i}
-            className={`w-${i === step - 2 ? 20 : 6} h-6 bg-${i <= step - 2 ? 'accent' : 'border'}`}
+            className={`w-${i === step - 2 ? 20 : 6} h-6`}
+            style={{
+              backgroundColor: i <= step - 2 ? colors.accent : colors.border
+            }}
           />
         ))}
       </View>
@@ -266,16 +280,17 @@ export default function OnboardingScreen({ navigation }: Props) {
   // ──────────────────────────────────────────────────────────
   if (step === 1) {
     return (
-      <SafeAreaView className="bg-gentil-bg flex-1">
+      <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg }}>
         <View className="items-center justify-center pt-16">
-          <Text className="font-fraunces-bold text-center justify-end text-[52px] pt-16 text-white leading-10">Gentil</Text>
+          <Text className="font-fraunces-bold text-center justify-end text-[52px] pt-16 leading-10" style={{ color: colors.text }}>Gentil</Text>
         </View>
-        <View className="flex-1 justify-end px-6 gap-12">
-          <Text className="font-fraunces-bold text-center text-[32px] text-white leading-10 mb-12">Melhore sua vida com afirmações positivas!</Text>
+        <View className="flex-1 justify-end px-6 gap-12" style={{ paddingBottom: 16 + insets.bottom }}>
+          <Text className="font-fraunces-bold text-center text-[32px] leading-10 mb-12" style={{ color: colors.text }}>Melhore sua vida com afirmações positivas!</Text>
           <View className="items-center mb-8 gap-12">
-            <Text className="text-accent text-2xl">★★★★★</Text>
+            <Text className="text-2xl" style={{ color: colors.accent }}>★★★★★</Text>
             <Text
-              className="font-fraunces text-center text-[14px] text-gentil-muted mt-2 leading-5"
+              className="font-fraunces text-center text-[14px] mt-2 leading-5"
+              style={{ color: colors.muted }}
             >
               "Ler isso todo dia me deixa menos ansioso e menos amargo"
             </Text>
@@ -291,14 +306,14 @@ export default function OnboardingScreen({ navigation }: Props) {
   // ──────────────────────────────────────────────────────────
   if (step === 4) {
     return (
-      <SafeAreaView className="bg-gentil-bg flex-1">
+      <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg }}>
         {renderBackButton()}
         <View className="flex-1 justify-center px-6">
-          <Text className="font-fraunces-bold text-center text-[26px] text-white leading-10">
+          <Text className="font-fraunces-bold text-center text-[26px] leading-10" style={{ color: colors.text }}>
             Através de repetições diárias podemos mudar nossa percepção sobre a realidade
           </Text>
         </View>
-        <View className="px-6 pb-4">
+        <View className="px-6" style={{ paddingBottom: 16 + insets.bottom }}>
           <PrimaryButton label="Próximo" onPress={handleNext} />
         </View>
       </SafeAreaView>
@@ -306,27 +321,28 @@ export default function OnboardingScreen({ navigation }: Props) {
   }
 
   // ──────────────────────────────────────────────────────────
-  // STEP 10: Auth Gate
+  // STEP 10: Concluir (usuário já autenticado)
   // ──────────────────────────────────────────────────────────
   if (step === 10) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
         {renderBackButton()}
         <View className="px-6 justify-center flex-1">
           <Text
-            className="font-fraunces-bold text-center text-[28px] text-white leading-10 mb-4"
+            className="font-fraunces-bold text-center text-[28px] leading-10 mb-4"
+            style={{ color: colors.text }}
           >
-            Vamos manter suas informações seguras e vinculadas com sua conta
+            Suas informações estão seguras e vinculadas à sua conta
           </Text>
-          <Text className="font-fraunces text-center text-[14px] text-gentil-muted leading-5"
+          <Text className="font-fraunces text-center text-[14px] leading-5"
+            style={{ color: colors.muted }}
           >
             Dessa forma conseguiremos personalizar o aplicativo para seu gosto e objetivos.
           </Text>
         </View>
 
-        <View className="px-6 pb-4 gap-3">
-          <SecondaryButton label="Login" onPress={() => handleAuth('Login')} />
-          <SecondaryButton label="Cadastre-se" onPress={() => handleAuth('Register')} />
+        <View className="px-6" style={{ paddingBottom: 16 + insets.bottom }}>
+          <PrimaryButton label="Concluir" onPress={handleComplete} loading={isCompleting} />
         </View>
       </SafeAreaView>
     );
@@ -336,10 +352,10 @@ export default function OnboardingScreen({ navigation }: Props) {
   // Scrollable steps (2, 3, 5, 6, 7, 8, 9)
   // ──────────────────────────────────────────────────────────
   return (
-    <SafeAreaView className="bg-gentil-bg flex-1">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg }}>
       {renderBackButton()}
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingBottom: 24 }}
+        contentContainerStyle={{ padding: 24, paddingBottom: 24 + insets.bottom }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         className="flex-1"
@@ -421,41 +437,55 @@ export default function OnboardingScreen({ navigation }: Props) {
             </View>
 
             {/* Notification preview card */}
-            <View className="bg-gentil-card rounded-2xl p-3 flex-row items-center gap-3">
-              <View className="w-16 h-16 rounded-xl bg-gentil-bg items-center justify-center">
-                <Text className="font-fraunces-semi text-white text-[12px]">Gentil</Text>
+            <View
+              className="rounded-2xl p-3 flex-row items-center gap-3"
+              style={{ backgroundColor: colors.card }}
+            >
+              <View
+                className="w-16 h-16 rounded-xl items-center justify-center"
+                style={{ backgroundColor: colors.bg }}
+              >
+                <Text className="font-fraunces-semi text-[12px]" style={{ color: colors.text }}>Gentil</Text>
               </View>
               <View className="flex-1">
-                <Text className="font-fraunces-semi text-white text-[14px]">
+                <Text className="font-fraunces-semi text-[14px]" style={{ color: colors.text }}>
                   Gentil
                 </Text>
-                <Text className="font-fraunces text-gentil-muted text-[13px] mt-1">
+                <Text className="font-fraunces text-[13px] mt-1" style={{ color: colors.muted }}>
                   Se você pode sonhar, pode realizar!
                 </Text>
               </View>
-              <Text className="absolute right-4 top-3 text-gentil-muted text-[12px]">Agora</Text>
+              <Text className="absolute right-4 top-3 text-[12px]" style={{ color: colors.muted }}>Agora</Text>
             </View>
 
             {/* Counter */}
-            <View className="bg-gentil-bg flex-row items-center justify-between rounded-xl border-b-2 border-gentil-border px-5 py-4 gap-2">
-              <Text className="font-fraunces text-white text-[15px]">
+            <View
+              className="flex-row items-center justify-between rounded-xl border-b-2 px-5 py-4 gap-2"
+              style={{
+                backgroundColor: colors.bg,
+                borderColor: colors.border
+              }}
+            >
+              <Text className="font-fraunces text-[15px]" style={{ color: colors.text }}>
                 Quantas vezes ao dia?
               </Text>
               <View className="flex-row items-center gap-4">
                 <Pressable
                   onPress={decrementNotifications}
-                  className="w-8 h-8 rounded-lg bg-gentil-accent text-center items-center justify-center"
+                  className="w-8 h-8 rounded-lg text-center items-center justify-center"
+                  style={{ backgroundColor: colors.accent }}
                 >
-                  <Text className="font-fraunces-semi text-center text-white text-[26px]">−</Text>
+                  <Text className="font-fraunces-semi text-center text-[26px]" style={{ color: colors.text }}>−</Text>
                 </Pressable>
-                <Text className="font-fraunces-semi text-white text-[15px] min-w-7 text-center">
+                <Text className="font-fraunces-semi text-[15px] min-w-7 text-center" style={{ color: colors.text }}>
                   {responses.notificationsPerDay}x
                 </Text>
                 <Pressable
                   onPress={incrementNotifications}
-                  className="w-8 h-8 rounded-lg bg-gentil-accent text-center items-center justify-center"
+                  className="w-8 h-8 rounded-lg text-center items-center justify-center"
+                  style={{ backgroundColor: colors.accent }}
                 >
-                  <Text className="font-fraunces-semi text-center text-white text-[26px]">+</Text>
+                  <Text className="font-fraunces-semi text-center text-[26px]" style={{ color: colors.text }}>+</Text>
                 </Pressable>
               </View>
             </View>
@@ -555,7 +585,7 @@ export default function OnboardingScreen({ navigation }: Props) {
         )}
       </ScrollView>
 
-      <View className="px-6 pb-4">
+      <View className="px-6" style={{ paddingBottom: 16 + insets.bottom }}>
         <PrimaryButton label="Próximo" onPress={handleNext} />
       </View>
     </SafeAreaView>

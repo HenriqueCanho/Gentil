@@ -9,21 +9,12 @@ import ProfileScreen from './ProfileScreen';
 import SocialScreen from './SocialScreen';
 import ThemeScreen from './ThemeScreen';
 import type { MainTabParamList } from '../navigation/types';
-import { COLORS } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const BAR_HEIGHT = 54;
 const FAB_SIZE = 62;
 const FAB_HALO = 10;
-
-const TAB_COLORS = {
-  active: COLORS.accent,
-  inactive: '#97A0B0',
-  background: COLORS.bg,
-  border: COLORS.bg,
-  fab: COLORS.bg,
-  pageBg: COLORS.accent,
-};
 
 const ROUTE_ICONS = {
   Theme: Palette,
@@ -34,7 +25,17 @@ const ROUTE_ICONS = {
 
 function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const mainActive = state.routes[state.index]?.name === 'Main';
+
+  const tabColors = {
+    active: colors.accent,
+    inactive: colors.muted,
+    background: colors.bg,
+    border: colors.border,
+    fab: colors.bg,
+    pageBg: colors.accent,
+  };
 
   return (
     <View
@@ -47,13 +48,13 @@ function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         height: BAR_HEIGHT + insets.bottom + 1,
         paddingBottom: insets.bottom,
         justifyContent: 'flex-end',
-      }}
+      }} className="absolute bottom-0 left-0 right-0 "
     >
       <View
         style={{
           marginHorizontal: 22,
           height: BAR_HEIGHT,
-          backgroundColor: TAB_COLORS.background,
+          backgroundColor: tabColors.background,
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
           borderBottomLeftRadius: 8,
@@ -61,8 +62,8 @@ function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           flexDirection: 'row',
           alignItems: 'center',
           borderWidth: 1,
-          borderColor: TAB_COLORS.border,
-          shadowColor: '#D4AF37',
+          borderColor: tabColors.border,
+          shadowColor: colors.accent,
           shadowOffset: { width: 0, height: -10 },
           shadowOpacity: 0.25,
           shadowRadius: 30,
@@ -73,7 +74,7 @@ function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           const renderTab = (route: (typeof state.routes)[number]) => {
             const isFocused = state.index === state.routes.indexOf(route);
             const Icon = ROUTE_ICONS[route.name as keyof typeof ROUTE_ICONS];
-            const color = isFocused ? TAB_COLORS.active : TAB_COLORS.inactive;
+            const color = isFocused ? tabColors.active : tabColors.inactive;
 
             const onPress = () => {
               const event = navigation.emit({
@@ -153,8 +154,8 @@ function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             top: -(FAB_HALO / 2),
             borderRadius: (FAB_SIZE + FAB_HALO) / 2,
             backgroundColor: 'transparent',
-            borderColor: TAB_COLORS.pageBg,
-            borderWidth: 2,
+            borderColor: tabColors.pageBg,
+            borderWidth: mainActive ? 2 : 0,
           }}
         />
         <Pressable
@@ -165,19 +166,19 @@ function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             width: FAB_SIZE,
             height: FAB_SIZE,
             borderRadius: FAB_SIZE / 2,
-            backgroundColor: mainActive ? '#7AA96A' : TAB_COLORS.fab,
+            backgroundColor: tabColors.fab,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: TAB_COLORS.pageBg,
+            borderColor: tabColors.pageBg,
             borderWidth: 2,
-            shadowColor: '#4A6B3F',
+            shadowColor: tabColors.pageBg,
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.18,
             shadowRadius: 18,
             elevation: 18,
           }}
         >
-          <ScrollText size={26} color={TAB_COLORS.active} />
+          <ScrollText size={26} color={tabColors.active} />
         </Pressable>
       </View>
     </View>
@@ -185,13 +186,14 @@ function GentilTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function MainTabNavigator() {
+  const { colors } = useTheme();
   return (
     <Tab.Navigator
       tabBar={(props) => <GentilTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         // No artificial bottom gap: allows content to scroll underneath floating tab bar
-        sceneStyle: { backgroundColor: COLORS.bg },
+        sceneStyle: { backgroundColor: colors.bg },
       }}
     >
       <Tab.Screen name="Theme" component={ThemeScreen} />

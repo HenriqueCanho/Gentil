@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Heart, Share2, BookOpen, RefreshCw } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { listAffirmations, type Affirmation } from '../lib/affirmations';
 import { toggleFavorite, isFavorited } from '../lib/favorites';
@@ -18,6 +19,7 @@ import { supabase } from '../lib/supabase';
 import { COLORS } from '../theme/colors';
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [affirmation, setAffirmation] = useState<Affirmation | null>(null);
   const [allAffirmations, setAllAffirmations] = useState<Affirmation[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -83,11 +85,12 @@ export default function HomeScreen() {
     if (h < 18) return 'Boa tarde';
     return 'Boa noite';
   };
+  const bottomPadding = 40 + insets.bottom;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: 24, paddingBottom: bottomPadding }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

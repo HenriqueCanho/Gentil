@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, Users } from 'lucide-react-native';
 
-import { COLORS } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 
 type SocialUser = {
   id: string;
@@ -21,6 +21,8 @@ const INITIAL_USERS: SocialUser[] = [
 ];
 
 export default function SocialScreen() {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const [people, setPeople] = useState<SocialUser[]>(INITIAL_USERS);
 
@@ -29,33 +31,57 @@ export default function SocialScreen() {
     if (!term) return people;
     return people.filter((p) => p.name.toLowerCase().includes(term));
   }, [query, people]);
+  const bottomPadding = 24 + insets.bottom + 54;
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gentil-bg">
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      className="flex-1"
+      style={{ backgroundColor: colors.bg }}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 24, paddingBottom: 0 }}
+        contentContainerStyle={{ padding: 24, paddingBottom: bottomPadding }}
       >
-        <Text className="font-fraunces text-sm text-gentil-muted">Comunidade</Text>
-        <Text className="mt-1 font-fraunces-bold text-3xl text-white">Social</Text>
+        <Text className="font-fraunces text-sm" style={{ color: colors.muted }}>
+          Comunidade
+        </Text>
+        <Text className="mt-1 font-fraunces-bold text-3xl" style={{ color: colors.text }}>
+          Social
+        </Text>
 
-        <View className="mt-6 flex-row items-center rounded-2xl border border-gentil-border bg-gentil-input px-4">
-          <Search color={COLORS.muted} size={18} />
+        <View
+          className="mt-6 flex-row items-center rounded-2xl border px-4"
+          style={{
+            borderColor: colors.border,
+            backgroundColor: colors.inputBg,
+          }}
+        >
+          <Search color={colors.muted} size={18} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Buscar pessoas"
-            placeholderTextColor={COLORS.muted}
-            className="flex-1 px-3 py-3.5 font-fraunces text-white"
+            placeholderTextColor={colors.muted}
+            className="flex-1 px-3 py-3.5 font-fraunces"
+            style={{ color: colors.text }}
           />
         </View>
 
-        <View className="mt-4 rounded-2xl border border-gentil-border bg-gentil-input p-4">
+        <View
+          className="mt-4 rounded-2xl border p-4"
+          style={{
+            borderColor: colors.border,
+            backgroundColor: colors.inputBg,
+          }}
+        >
           <View className="flex-row items-center gap-2">
-            <Users color={COLORS.accent} size={18} />
-            <Text className="font-fraunces-semi text-base text-white">Status da rede</Text>
+            <Users color={colors.accent} size={18} />
+            <Text className="font-fraunces-semi text-base" style={{ color: colors.text }}>
+              Status da rede
+            </Text>
           </View>
-          <Text className="mt-2 font-fraunces text-sm text-gentil-muted">
+          <Text className="mt-2 font-fraunces text-sm" style={{ color: colors.muted }}>
             Esta tela já está pronta para receber feed, comentários e presença em tempo real.
           </Text>
         </View>
@@ -64,12 +90,18 @@ export default function SocialScreen() {
           {filteredPeople.map((person) => (
             <View
               key={person.id}
-              className="rounded-2xl border border-gentil-border bg-gentil-card p-4"
+              className="rounded-2xl border p-4"
+              style={{
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              }}
             >
               <View className="flex-row items-center justify-between">
                 <View>
-                  <Text className="font-fraunces-semi text-base text-white">{person.name}</Text>
-                  <Text className="mt-0.5 font-fraunces text-xs text-gentil-muted">
+                  <Text className="font-fraunces-semi text-base" style={{ color: colors.text }}>
+                    {person.name}
+                  </Text>
+                  <Text className="mt-0.5 font-fraunces text-xs" style={{ color: colors.muted }}>
                     Humor: {person.mood} • 🔥 {person.streak} dias
                   </Text>
                 </View>
@@ -81,14 +113,16 @@ export default function SocialScreen() {
                       ),
                     )
                   }
-                  className={`rounded-xl px-3 py-2 ${
-                    person.following ? 'bg-gentil-chip' : 'bg-accent'
-                  }`}
+                  className="rounded-xl px-3 py-2"
+                  style={{
+                    backgroundColor: person.following ? colors.chip : colors.accent,
+                  }}
                 >
                   <Text
-                    className={`font-fraunces-semi text-xs ${
-                      person.following ? 'text-white' : 'text-slate-900'
-                    }`}
+                    className="font-fraunces-semi text-xs"
+                    style={{
+                      color: person.following ? colors.text : colors.bg,
+                    }}
                   >
                     {person.following ? 'Seguindo' : 'Seguir'}
                   </Text>
@@ -101,3 +135,4 @@ export default function SocialScreen() {
     </SafeAreaView>
   );
 }
+

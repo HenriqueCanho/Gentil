@@ -2,19 +2,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const APP_PREFERENCES_KEY = '@gentil_app_preferences';
 
-export type AppThemeMode = 'gentil' | 'sunset' | 'ocean';
+export type AppThemeMode = 'gentil' | 'gentil invertido' | 'light' | 'fada' | 'warm' | 'storm';
 export type MainAnimationMode = 'fade' | 'slide' | 'scale';
 
 export type AppPreferences = {
   themeMode: AppThemeMode;
   mainAnimationMode: MainAnimationMode;
   showCategoryTags: boolean;
+  dailyReadingGoal: number;
 };
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   themeMode: 'gentil',
   mainAnimationMode: 'fade',
   showCategoryTags: true,
+  dailyReadingGoal: 5,
 };
 
 export async function loadAppPreferences(): Promise<AppPreferences> {
@@ -40,30 +42,3 @@ export async function saveAppPreferences(
   return next;
 }
 
-export function getThemePalette(mode: AppThemeMode): {
-  accent: string;
-  accentSoft: string;
-  surface: string;
-} {
-  if (mode === 'sunset') {
-    return {
-      accent: '#FB923C',
-      accentSoft: 'rgba(251,146,60,0.15)',
-      surface: 'rgba(251,146,60,0.08)',
-    };
-  }
-
-  if (mode === 'ocean') {
-    return {
-      accent: '#38BDF8',
-      accentSoft: 'rgba(56,189,248,0.15)',
-      surface: 'rgba(56,189,248,0.08)',
-    };
-  }
-
-  return {
-    accent: '#D4AF37',
-    accentSoft: 'rgba(212,175,55,0.15)',
-    surface: 'rgba(212,175,55,0.08)',
-  };
-}

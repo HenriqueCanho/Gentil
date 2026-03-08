@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 
 import InputField from '../components/InputField';
@@ -18,7 +18,7 @@ import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
-import { COLORS } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import {
   hasValidationErrors,
   validateLoginForm,
@@ -28,6 +28,8 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<AuthFormErrors>({});
@@ -46,26 +48,36 @@ export default function LoginScreen({ navigation }: Props) {
     if (hasValidationErrors(formErrors)) return;
 
     setIsLoading(true);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout na conexão')), 15000)
+    );
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const signInPromise = supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
+      const { data, error } = (await Promise.race([
+        signInPromise,
+        timeoutPromise,
+      ])) as any;
+
       if (error) {
         showToast(error.message);
+        setIsLoading(false);
         return;
       }
-      // Navigation is handled by App.tsx onAuthStateChange → navigationRef.reset
-    } catch (e) {
-      showToast('Erro inesperado. Tente novamente.');
-    } finally {
+      // Success: App.tsx handles navigation via onAuthStateChange
+    } catch (e: any) {
+      showToast(e.message === 'Timeout na conexão' ? 'A conexão está demorando muito. Verifique sua internet.' : 'Erro inesperado. Tente novamente.');
       setIsLoading(false);
     }
   };
+  const bottomPadding = 24 + insets.bottom;
 
   return (
-    <SafeAreaView className="flex-1 bg-gentil-bg">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg }}>
       <Toast
         message={toast.message}
         type={toast.type}
@@ -78,10 +90,14 @@ export default function LoginScreen({ navigation }: Props) {
           <Pressable
             onPress={handleBack}
             hitSlop={12}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-            className="h-10 w-10 items-center justify-center rounded-full border border-white bg-gentil-input"
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.6 : 1,
+              borderColor: colors.border,
+              backgroundColor: colors.inputBg,
+            })}
+            className="h-10 w-10 items-center justify-center"
           >
-            <ChevronLeft color={COLORS.text} size={22} />
+            <ChevronLeft color={colors.text} size={22} />
           </Pressable>
         )}
       </View>
@@ -91,12 +107,19 @@ export default function LoginScreen({ navigation }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            padding: 24,
+            paddingBottom: bottomPadding,
+            justifyContent: 'center',
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text className="mb-2 font-fraunces-bold text-[32px] text-white">Entrar</Text>
-          <Text className="mb-10 font-fraunces text-[15px] text-gentil-muted">
+          <Text className="mb-2 font-fraunces-bold text-[32px]" style={{ color: colors.text }}>
+            Entrar
+          </Text>
+          <Text className="mb-10 font-fraunces text-[15px]" style={{ color: colors.text }}>
             Acesse sua conta no Gentil.
           </Text>
 
@@ -105,31 +128,40 @@ export default function LoginScreen({ navigation }: Props) {
               value={email}
               onChangeText={(v) => {
                 setEmail(v);
-                if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
               }}
               placeholder="E-mail"
-              autoCapitalize="none"
               keyboardType="email-address"
+              autoCapitalize="none"
               error={errors.email}
             />
             <InputField
               value={password}
               onChangeText={(v) => {
                 setPassword(v);
-                if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
               }}
               placeholder="Senha"
               secureTextEntry
               error={errors.password}
             />
 
-            <View className="mt-2 gap-3">
-              <PrimaryButton label="Entrar" onPress={handleSignIn} loading={isLoading} />
-              <SecondaryButton
-                label="Criar conta"
-                onPress={() => navigation.navigate('Register', {})}
-              />
+            <View className="mt-2 items-end">
+              <Text className="font-fraunces text-sm" style={{ color: colors.muted }}>
+                Esqueceu a senha?
+              </Text>
             </View>
+
+            <PrimaryButton
+              label={isLoading ? 'Entrando...' : 'Entrar'}
+              onPress={handleSignIn}
+              disabled={isLoading}
+            />
+            <SecondaryButton
+              label="Criar conta"
+              onPress={() => navigation.navigate('Register')}
+              disabled={isLoading}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

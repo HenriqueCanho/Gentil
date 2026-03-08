@@ -1,142 +1,165 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Palette, Sparkles, SwatchBook } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Check, Play } from 'lucide-react-native';
 
-import {
-  getThemePalette,
-  loadAppPreferences,
-  saveAppPreferences,
-  type AppThemeMode,
-  type MainAnimationMode,
-} from '../lib/appPreferences';
+import { type AppThemeMode } from '../lib/appPreferences';
+import { useTheme } from '../context/ThemeContext';
+import PrimaryButton from '../components/PrimaryButton';
 
-const THEMES: Array<{ id: AppThemeMode; name: string }> = [
-  { id: 'gentil', name: 'Gentil (Dourado)' },
-  { id: 'sunset', name: 'Sunset (Laranja)' },
-  { id: 'ocean', name: 'Ocean (Azul)' },
-];
+type ThemePreset = {
+  id: AppThemeMode;
+  label: string;
+  cardBg: string;
+  cardTextColor: string;
+  isDynamic?: boolean;
+};
 
-const ANIMATIONS: Array<{ id: MainAnimationMode; name: string; description: string }> = [
-  { id: 'fade', name: 'Fade', description: 'Troca suave com opacidade.' },
-  { id: 'slide', name: 'Slide', description: 'Frase entra deslizando.' },
-  { id: 'scale', name: 'Scale', description: 'Leve zoom ao trocar frase.' },
+const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'gentil',
+    label: 'Gentil',
+    cardBg: '#0A1A19',
+    cardTextColor: '#ffffffff',
+  },
+  {
+    id: 'gentil invertido',
+    label: 'Gentil Invertido',
+    cardBg: '#ffffffff',
+    cardTextColor: '#1A3A34',
+  },
+  {
+    id: 'warm',
+    label: 'Ensolarado',
+    cardBg: '#FFF8EB',
+    cardTextColor: '#1A3A34',
+  },
+  {
+    id: 'light',
+    label: 'Claro',
+    cardBg: '#F7F0E8',
+    cardTextColor: '#2b1e1bff',
+  },
+  {
+    id: 'fada',
+    label: 'Fada',
+    cardBg: '#e270c3ff',
+    cardTextColor: '#FFF5F0',
+  },
+  {
+    id: 'storm',
+    label: 'Tempestade',
+    cardBg: '#3D3B5C',
+    cardTextColor: '#F7F0E8',
+  },
 ];
 
 export default function ThemeScreen() {
-  const [themeMode, setThemeMode] = useState<AppThemeMode>('gentil');
-  const [animationMode, setAnimationMode] = useState<MainAnimationMode>('fade');
-  const [showCategoryTags, setShowCategoryTags] = useState(true);
+  const insets = useSafeAreaInsets();
+  const { theme, setTheme, colors } = useTheme();
+  const bottomPadding = 40 + insets.bottom + 54;
 
-  useEffect(() => {
-    loadAppPreferences().then((prefs) => {
-      setThemeMode(prefs.themeMode);
-      setAnimationMode(prefs.mainAnimationMode);
-      setShowCategoryTags(prefs.showCategoryTags);
-    });
-  }, []);
-
-  const palette = getThemePalette(themeMode);
+  const handleSelect = (id: AppThemeMode) => {
+    setTheme(id);
+  };
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-gentil-bg">
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      className="flex-1"
+      style={{ backgroundColor: colors.bg }}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 24, paddingBottom: 0 }}
+        contentContainerStyle={{
+          padding: 24,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
-        <Text className="font-fraunces text-sm text-gentil-muted">Personalização</Text>
-        <Text className="mt-1 font-fraunces-bold text-3xl text-white">Theme</Text>
+        <Text className="font-fraunces text-sm" style={{ color: colors.muted }}>Seu gosto</Text>
+        <Text className="mt-1 font-fraunces-bold text-3xl mb-6" style={{ color: colors.text }}>Tema</Text>
 
-        <View className="mt-6 rounded-2xl border border-gentil-border bg-gentil-input p-5">
-          <View className="mb-3 flex-row items-center gap-2">
-            <Palette color={palette.accent} size={18} />
-            <Text className="font-fraunces-semi text-base text-white">Paleta de cores</Text>
-          </View>
-          <View className="gap-2">
-            {THEMES.map((item) => {
-              const active = item.id === themeMode;
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={async () => {
-                    setThemeMode(item.id);
-                    await saveAppPreferences({ themeMode: item.id });
-                  }}
-                  className={`rounded-xl border px-4 py-3 ${
-                    active ? 'border-accent bg-accent/20' : 'border-gentil-border bg-gentil-bg'
-                  }`}
-                >
-                  <Text className={`font-fraunces-semi ${active ? 'text-accent' : 'text-white'}`}>
-                    {item.name}
+        <Text
+          className="font-fraunces-bold text-center text-2xl leading-tight"
+          style={{ color: colors.text }}
+        >
+          Qual tema você gostaria de utilizar?
+        </Text>
+        <Text
+          className="mt-2 font-fraunces text-center"
+          style={{ color: colors.muted }}
+        >
+          Escolha entre os temas pré-definidos.
+        </Text>
+
+        <View className="mt-8 flex-row flex-wrap justify-between gap-4">
+          {THEME_PRESETS.map((preset) => {
+            const selected = preset.id === theme;
+            return (
+              <Pressable
+                key={preset.id}
+                onPress={() => handleSelect(preset.id)}
+                className="w-[47%] overflow-hidden rounded-3xl border-2"
+                style={{
+                  backgroundColor: preset.cardBg,
+                  borderColor: selected ? colors.text : colors.border,
+                  borderWidth: selected ? 2 : 0,
+                  aspectRatio: 0.85,
+                }}
+              >
+                {preset.id === 'gentil' && (
+                  <View
+                    className="absolute left-3 top-3 z-10 rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                  >
+                    <Text className="font-fraunces text-[10px] uppercase tracking-wider text-white">
+                      cor padrão
+                    </Text>
+                  </View>
+                )}
+                {preset.isDynamic && (
+                  <View
+                    className="absolute left-3 top-3 z-10 h-8 w-8 items-center justify-center rounded-full"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
+                  >
+                    <Play color={preset.cardTextColor} size={14} />
+                  </View>
+                )}
+                {selected && (
+                  <View
+                    className="absolute right-3 top-3 z-10 h-8 w-8 items-center justify-center rounded-full"
+                    style={{ backgroundColor: colors.text }}
+                  >
+                    <Check color={colors.bg} size={16} strokeWidth={2.5} />
+                  </View>
+                )}
+                <View className="flex-1 items-center justify-center px-4">
+                  <Text
+                    className="font-fraunces-bold text-xl"
+                    style={{ color: preset.cardTextColor }}
+                  >
+                    Gentil
                   </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <View className="mt-4 rounded-2xl border border-gentil-border bg-gentil-input p-5">
-          <View className="mb-3 flex-row items-center gap-2">
-            <Sparkles color={palette.accent} size={18} />
-            <Text className="font-fraunces-semi text-base text-white">Animação da Main</Text>
-          </View>
-          <View className="gap-2">
-            {ANIMATIONS.map((item) => {
-              const active = item.id === animationMode;
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={async () => {
-                    setAnimationMode(item.id);
-                    await saveAppPreferences({ mainAnimationMode: item.id });
-                  }}
-                  className={`rounded-xl border px-4 py-3 ${
-                    active ? 'border-accent bg-accent/20' : 'border-gentil-border bg-gentil-bg'
-                  }`}
-                >
-                  <Text className={`font-fraunces-semi ${active ? 'text-accent' : 'text-white'}`}>
-                    {item.name}
-                  </Text>
-                  <Text className="mt-1 font-fraunces text-xs text-gentil-muted">{item.description}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View className="mt-4 rounded-2xl border border-gentil-border bg-gentil-input p-5">
-          <View className="mb-3 flex-row items-center gap-2">
-            <SwatchBook color={palette.accent} size={18} />
-            <Text className="font-fraunces-semi text-base text-white">Outras preferências</Text>
-          </View>
-          <View className="flex-row items-center justify-between rounded-xl border border-gentil-border bg-gentil-bg px-4 py-3">
-            <Text className="font-fraunces text-sm text-white">Mostrar categoria nas frases</Text>
-            <Pressable
-              onPress={async () => {
-                const next = !showCategoryTags;
-                setShowCategoryTags(next);
-                await saveAppPreferences({ showCategoryTags: next });
-              }}
-              className={`rounded-full px-3 py-1 ${showCategoryTags ? 'bg-accent' : 'bg-gentil-chip'}`}
-            >
-              <Text className={`font-fraunces-semi text-xs ${showCategoryTags ? 'text-slate-900' : 'text-white'}`}>
-                {showCategoryTags ? 'ON' : 'OFF'}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View className="mt-4 rounded-2xl border border-gentil-border p-5" style={{ backgroundColor: palette.surface }}>
-          <Text className="font-fraunces-semi text-base text-white">Preview</Text>
-          <Text className="mt-2 font-fraunces text-sm leading-6 text-gentil-muted">
-            Esta prévia mostra o acento escolhido para elementos destacados do app. As mudanças já são
-            salvas e usadas nas telas configuráveis.
+        <View className="mt-12 flex-1">
+          <Text
+            className="font-fraunces-bold text-center text-2xl leading-tight"
+            style={{ color: colors.text }}
+          >
+            Qual ícone você gostaria de utilizar?
           </Text>
-          <View className="mt-4 self-start rounded-lg px-4 py-2" style={{ backgroundColor: palette.accentSoft }}>
-            <Text className="font-fraunces-semi text-sm" style={{ color: palette.accent }}>
-              Cor ativa selecionada
-            </Text>
-          </View>
+          <Text
+            className="mt-2 font-fraunces text-center"
+            style={{ color: colors.muted }}
+          >
+            Escolha entre nossos ícones personalizados
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
